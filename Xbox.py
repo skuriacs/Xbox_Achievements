@@ -1,3 +1,4 @@
+from pandas.core.frame import DataFrame
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -5,14 +6,39 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import _find_element, _find_elements, presence_of_element_located
 import time
 import pandas as pd
+import sys
+import os
 
-driver = webdriver.Chrome()
+# Asking the user for what browser they want to use
+driver = None
+print("Please enter a number for the browser you want to use")
+print("1 Google Chrome")
+print("2 FireFox")
+choice = input("Please enter your selection here: ")
+try:
+    if choice == "1":
+        driver = webdriver.Chrome()
+    elif choice == "2":
+        driver = webdriver.Firefox()
+    else:
+        print("Invalid input")
+        sys.exit()
+except Exception as e:
+    print(e)
+    print("Do you have the correct driver for Selenium ? Please refer to github for help.")
+    sys.exit()
+print(os.getcwd())
+cwd = os.getcwd()
+
+# Returns game_stats which holds the listing of all games on the xbox site
 
 
 def return_game_stats(div: str) -> WebDriverWait:
     return WebDriverWait(driver, 10).until(
         lambda x: x.find_elements_by_class_name(div)
     )
+
+# Tries to get html element that has the minutes played for the game
 
 
 def stat_exist_time(game_stats: list) -> str:
@@ -22,6 +48,8 @@ def stat_exist_time(game_stats: list) -> str:
         return time_played
     except:
         return "0"
+
+# Returns a list of the GamerScore a player has earned and the max possible amount for a game
 
 
 def get_gamerscore(game_stats: list) -> list:
@@ -33,6 +61,19 @@ def get_gamerscore(game_stats: list) -> list:
     except:
         return [0, 0]
 
+# Gets the number of achievements a player has earned
+
+
+def get_achievement_num(game_stats: list) -> int:
+    try:
+        achievements = game_stats[1]
+        achievements = achievements.get_attribute("innerHTML").strip()
+        return int(achievements)
+    except:
+        return 0
+
+# Waits for a HTML element with the same id to show up on the page
+
 
 def wait_for_id(id: str, time=10) -> WebDriverWait:
     return WebDriverWait(driver, time).until(
@@ -40,42 +81,54 @@ def wait_for_id(id: str, time=10) -> WebDriverWait:
     )
 
 
+# User logging in
 driver.get(
     "https://account.xbox.com/en-us/Profile?xr=socialtwistnav&activetab=main:mainTab2")
 
-list_of_games = wait_for_id("gamesList", 180)
-games = list_of_games.find_elements_by_tag_name("li")
+try:
+    list_of_games = wait_for_id("gamesList", 300)
+except:
+    print("Could not read game list in the allocated time (300 secs). Did you login in that time?")
+    driver.quit()
+    sys.exit()
 
-time_played_urls = []
+games = list_of_games.find_elements_by_tag_name("li")
+game_urls = []
 game_names = []
 
+# Goes through the game list and appends each href link to game_urls, and appends the name of the game as well
 for game in games:
     game_wrapper = game.find_element_by_class_name(
         "recentProgressLinkWrapper")
     url = game_wrapper.get_attribute("href")
-    time_played_urls.append(url)
+    game_urls.append(url)
     game_name = game_wrapper.get_attribute("aria-label")
     game_names.append(game_name)
 
+# Pandas dataframe for storing the info
 df = pd.DataFrame(columns=['Game_Name', 'Minutes_Played',
-                  "GamerScore_Earned", "GamerScore_Possible"])
+                  "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"])
 
-for url, name in zip(time_played_urls[0:5], game_names[:5]):
+# For each url page, try to get the time played in minutes, gamer score, and num
+# Of achievements for each game, then append it to the df
+for url, name in zip(game_urls[:5], game_names[:5]):
     driver.get(url)
     game_stats = return_game_stats("statdata")
     time_played = stat_exist_time(game_stats)
     gamer_score_earned, gamer_score_max = get_gamerscore(game_stats)
+    num_of_achievements = get_achievement_num(game_stats)
     df = df.append(
         {
             "Game_Name": name,
             "Minutes_Played": time_played,
             "GamerScore_Earned": gamer_score_earned,
-            "GamerScore_Possible": gamer_score_max
+            "GamerScore_Possible": gamer_score_max,
+            "Number_of_Achievements": num_of_achievements
         }, ignore_index=True)
     print(time_played, name, gamer_score_earned, gamer_score_max)
 
-df[["Minutes_Played", "GamerScore_Earned", "GamerScore_Possible"]] = df[[
-    "Minutes_Played", "GamerScore_Earned", "GamerScore_Possible"]].astype(int)
-print(df)
-print(df.info())
-time.sleep(300)
+# Converts some columns to int type,
+df[["Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]] = df[[
+    "Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]].astype(int)
+df.to_csv(cwd + "\XboxStats.csv", index=False)
+driver.quit()
