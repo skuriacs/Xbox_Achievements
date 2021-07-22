@@ -26,6 +26,7 @@ try:
 except Exception as e:
     print(e)
     print("Do you have the correct driver for Selenium ? Please refer to github for help.")
+    time.sleep(10)
     sys.exit()
 print(os.getcwd())
 cwd = os.getcwd()
