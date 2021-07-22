@@ -25,7 +25,7 @@ try:
         sys.exit()
 except Exception as e:
     print(e)
-    print("Do you have the correct driver for Selenium ? Please refer to github for help.")
+    print("Do you have the correct driver for Selenium? Please refer to github for help.")
     time.sleep(10)
     sys.exit()
 print(os.getcwd())
@@ -45,7 +45,12 @@ def return_game_stats(div: str) -> WebDriverWait:
 def stat_exist_time(game_stats: list) -> str:
     try:
         time_played = game_stats[-1]
-        time_played = time_played.get_attribute("innerHTML").strip()
+        time_played = time_played.get_attribute(
+            "innerHTML").strip().replace(",", "")
+        if "%" in time_played:
+            time_played = game_stats[-2]
+            time_played = time_played.get_attribute(
+                "innerHTML").strip().replace(",", "")
         return time_played
     except:
         return "0"
@@ -110,10 +115,16 @@ for game in games:
 df = pd.DataFrame(columns=['Game_Name', 'Minutes_Played',
                   "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"])
 
-# For each url page, try to get the time played in minutes, gamer score, and num
-# Of achievements for each game, then append it to the df
-for url, name in zip(game_urls[:5], game_names[:5]):
+""" 
+For each url page, try to get the time played in minutes, gamer score, and number of achievements for each game, then append it to the df
+"""
+current_game = 1
+total_games = len(game_names)
+for url, name in zip(game_urls, game_names):
     driver.get(url)
+    print("Getting info for : {:<70}{:<4} out of {:<4}".format(
+        name, current_game, total_games))
+    current_game += 1
     game_stats = return_game_stats("statdata")
     time_played = stat_exist_time(game_stats)
     gamer_score_earned, gamer_score_max = get_gamerscore(game_stats)
@@ -126,10 +137,21 @@ for url, name in zip(game_urls[:5], game_names[:5]):
             "GamerScore_Possible": gamer_score_max,
             "Number_of_Achievements": num_of_achievements
         }, ignore_index=True)
-    print(time_played, name, gamer_score_earned, gamer_score_max)
 
 # Converts some columns to int type,
 df[["Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]] = df[[
     "Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]].astype(int)
+
+# Asking the user if they want to include games with 0 minutes played
+choice = input(
+    "Do you want to include games with 0 minutes played in your csv? (Y/N)")
+choice = choice.upper().strip()
+if choice == 'N':
+    zero_minutes_filter = df["Minutes_Played"] != 0
+    df = df[zero_minutes_filter]
+
+# Creating csv file and quiting
+print("Dumping data into XboxStats.csv")
 df.to_csv(cwd + "\XboxStats.csv", index=False)
+print("Finished! Closing your browser now :) ")
 driver.quit()

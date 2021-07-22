@@ -25,3 +25,8 @@ Firefox: https://github.com/mozilla/geckodriver/releases/
 <ol>
 <li> Clone the repo, and make sure the webdriver exe is in the same directory as the script. Make sure you have the same Python modules installed. If not, use PIP to install them.
 <li> Follow steps 3-6 from the Executable section.
+</ol>
+
+# Analysis
+After running the program, you can run the .ipynb script that's included in the repo if you want to see some stats on your games with some fancy
+graphs and such!
