@@ -14,14 +14,15 @@ driver = None
 print("Please enter a number for the browser you want to use")
 print("1 Google Chrome")
 print("2 FireFox")
-choice = input("Please enter your selection here: ")
+choice = input("Please enter your selection here: ").strip()
 try:
     if choice == "1":
         driver = webdriver.Chrome()
     elif choice == "2":
         driver = webdriver.Firefox()
     else:
-        print("Invalid input")
+        print("Invalid input! Please type in 1 or 2.")
+        time.sleep(10)
         sys.exit()
 except Exception as e:
     print(e)
@@ -95,6 +96,7 @@ try:
     list_of_games = wait_for_id("gamesList", 300)
 except:
     print("Could not read game list in the allocated time (300 secs). Did you login in that time?")
+    time.sleep(5)
     driver.quit()
     sys.exit()
 
