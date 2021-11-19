@@ -28,5 +28,5 @@ Note: If you see an error like (USB device not found). Don't worry about it, the
 </ol>
 
 # Analysis
-After running the program, you can run the .ipynb script that's included in the repo if you want to see some stats on your games with some fancy
-graphs and such!
+After running the program, you can run the .ipynb script that's included in the repo if you want to see some stats on your games with some 
+graphs and shows which games gave you the most time to GamerScore value!

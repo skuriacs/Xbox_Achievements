@@ -1,13 +1,9 @@
-from pandas.core.frame import DataFrame
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support.expected_conditions import _find_element, _find_elements, presence_of_element_located
-import time
+import os
 import pandas as pd
 import sys
-import os
+import time
 
 # Asking the user for what browser they want to use
 driver = None
@@ -29,7 +25,6 @@ except Exception as e:
     print("Do you have the correct driver for Selenium? Please refer to github for help.")
     time.sleep(10)
     sys.exit()
-print(os.getcwd())
 cwd = os.getcwd()
 
 # Returns game_stats which holds the listing of all games on the xbox site
@@ -53,7 +48,8 @@ def stat_exist_time(game_stats: list) -> str:
             time_played = time_played.get_attribute(
                 "innerHTML").strip().replace(",", "")
         return time_played
-    except:
+    except Exception as e:
+        print(e)
         return "0"
 
 # Returns a list of the GamerScore a player has earned and the max possible amount for a game
@@ -65,7 +61,8 @@ def get_gamerscore(game_stats: list) -> list:
         gamer_score = gamer_score.get_attribute(
             "innerHTML").replace(" ", "").replace(",", "").strip().split("/")
         return gamer_score
-    except:
+    except Exception as e:
+        print(e)
         return [0, 0]
 
 # Gets the number of achievements a player has earned
@@ -76,7 +73,8 @@ def get_achievement_num(game_stats: list) -> int:
         achievements = game_stats[1]
         achievements = achievements.get_attribute("innerHTML").strip()
         return int(achievements)
-    except:
+    except Exception as e:
+        print(e)
         return 0
 
 # Waits for a HTML element with the same id to show up on the page
@@ -94,7 +92,8 @@ driver.get(
 
 try:
     list_of_games = wait_for_id("gamesList", 300)
-except:
+except Exception as e:
+    print(e)
     print("Could not read game list in the allocated time (300 secs). Did you login in that time?")
     time.sleep(5)
     driver.quit()
@@ -117,7 +116,7 @@ for game in games:
 df = pd.DataFrame(columns=['Game_Name', 'Minutes_Played',
                   "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"])
 
-""" 
+"""
 For each url page, try to get the time played in minutes, gamer score, and number of achievements for each game, then append it to the df
 """
 current_game = 1
@@ -140,7 +139,17 @@ for url, name in zip(game_urls, game_names):
             "Number_of_Achievements": num_of_achievements
         }, ignore_index=True)
 
-# Converts some columns to int type,
+
+# Some new update caused some numbers to be "---", these lines should replace those values with 0 (11/16/21)
+def replaceDashes(element):
+    if element == "---":
+        element = "0"
+    return element
+
+
+df[["Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]] = df[[
+    "Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]].applymap(replaceDashes)
+# Converts some columns to int type
 df[["Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]] = df[[
     "Minutes_Played", "GamerScore_Earned", "GamerScore_Possible", "Number_of_Achievements"]].astype(int)
 
@@ -154,6 +163,6 @@ if choice == 'N':
 
 # Creating csv file and quiting
 print("Dumping data into XboxStats.csv")
-df.to_csv(cwd + "\XboxStats.csv", index=False)
+df.to_csv(cwd + r"\XboxStats.csv", index=False)
 print("Finished! Closing your browser now :) ")
 driver.quit()
