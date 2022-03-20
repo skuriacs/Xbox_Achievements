@@ -4,3 +4,5 @@ geckodriver.log
 geckodriver.exe
 XboxStats.csv
 chromedriver.exe
+__pycache__
+output
